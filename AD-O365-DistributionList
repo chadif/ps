@@ -1,0 +1,21 @@
+## Get AD Group Users
+$group = Read-Host -Prompt 'Input the AD group name'
+$users = Get-ADGroupMember -Identity $group
+
+## Connect to O365
+$UserCredential = Get-Credential
+$Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $UserCredential -Authentication Basic -AllowRedirection
+Import-PSSession $Session
+
+## Create the new DL
+$dl = "DL - $group"
+New-DistributionGroup -Name $dl -DisplayName $dl -Alias "$group" -PrimarySmtpAddress $group@stoneshare.com
+
+## Set DL owner
+Set-DistributionGroup -Identity $dl -ManagedBy cbenfekihAdmin,jprovostAdmin,ygallerneaultAdmin -BypassSecurityGroupManagerCheck -RequireSenderAuthenticationEnabled $false
+
+## Add the group members from the AD group to the DL list
+foreach ($user in $users)
+{
+    Add-DistributionGroupMember -Identity $dl -Member "$($user.samAccountName)@stoneshare.com"
+}
